@@ -1,10 +1,63 @@
 apply plugin: 'java'
+apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray'
+
+def leashVersion = '0.1'
+def leashVersionDesc = 'initial version'
 
 jar {
     from {
         configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
     }
 }
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allJava
+    classifier = 'sources'
+}
+
+publishing {
+    publications {
+        Maven(MavenPublication) {
+            groupId 'com.rgeldmacher.leash'
+            artifactId 'leash'
+            version leashVersion
+
+            from components.java
+
+            artifact sourcesJar {
+                classifier "sources"
+            }
+        }
+    }
+}
+
+bintray {
+    user = project.hasProperty('bintrayUser') ? project.bintrayUser : System.getenv('BINTRAY_USER')
+    key = project.hasProperty('bintrayKey') ? project.bintrayKey : System.getenv('BINTRAY_KEY')
+    publications = ['Maven']
+    dryRun = false
+    publish = true
+
+    pkg {
+        repo = 'maven'
+        name = 'com.rgeldmacher.leash'
+        desc = 'Annotation support for retaining objects during orientation change on Android.'
+        websiteUrl = 'https://github.com/rgeldmacher/leash'
+        issueTrackerUrl = 'https://github.com/rgeldmacher/leash/issues'
+        vcsUrl = 'https://github.com/rgeldmacher/leash.git'
+        licenses = ['Apache-2.0']
+        labels = ['android']
+        publicDownloadNumbers = true
+
+        version {
+            name = leashVersion
+            desc = leashVersionDesc
+            vcsTag = leashVersion
+        }
+    }
+}
+
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
