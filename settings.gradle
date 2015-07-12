@@ -1,0 +1,2 @@
+include 'leash-sample', 'leash'
+rootProject.name = "leash-all"
