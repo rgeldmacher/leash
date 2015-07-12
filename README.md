@@ -81,6 +81,9 @@ And apply to your module:
 apply plugin: 'com.neenbedankt.android-apt'
 ```
 
+## Disclaimer
+Leash ist still under construction. Breaking API changes may still occur.
+
 ## Developed by
 Robert Geldmacher - [google.com/+RobertGeldmacher](https://plus.google.com/+RobertGeldmacher)
 
