@@ -31,12 +31,61 @@ The basic idea is to store objects in a fragment that is retained across configu
 The generated code will create a retained fragment with fields matching the annotated fields of your Activity. When `retainData()`is called the objects of the annotated fields will be stored in the retained fragment. When `getRetainedData()` is called after the configuration change the objects of the retained fragment will be assigned to the annotated fields of your activity again.
 
 ## Download
+Download the latest jar or grab via Maven:
+
+[ ![Download](https://api.bintray.com/packages/rgeldmacher/maven/com.rgeldmacher.leash/images/download.svg) ](https://bintray.com/rgeldmacher/maven/com.rgeldmacher.leash/_latestVersion)
+
+```
+<dependency>
+  <groupId>com.rgeldmacher.leash</groupId>
+  <artifactId>leash</artifactId>
+  <version>0.1</version>
+</dependency>
+```
+
+Gradle:
+
+```
+compile 'com.rgeldmacher.leash:leash:0.1'
+```
+
+Currently leash is only published on my personal bintray repository, so you need to add the repo to your maven repositories:
+```
+repositories {
+    maven {
+        url "https://dl.bintray.com/rgeldmacher/maven/"
+    }
+}
+```
+
+JCenter integration coming soon!
+
+## Android Studio Integration
+While the annotation itself will work out of the box, Android Studio does not automatically pick up the generated code and thus cannot provide auto-completion on the generated classes and will mark their usages as error. To fix this you can add the [android-apt plugin](https://bitbucket.org/hvisser/android-apt) by Hugo Visser to your setup and Android Studio will pick up the generated code.
+
+Add android-apt to your build scripts:
+```
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:1.2.3'
+        classpath 'com.neenbedankt.gradle.plugins:android-apt:1.4'
+    }
+}
+```
+
+And apply to your module:
+```
+apply plugin: 'com.neenbedankt.android-apt'
+```
 
 ## Developed by
 Robert Geldmacher - [google.com/+RobertGeldmacher](https://plus.google.com/+RobertGeldmacher)
 
 ## Credits
-[Hugo Visser](https://plus.google.com/+HugoVisser) - Author of the invaluable [android-apt plugin](https://bitbucket.org/hvisser/android-apt) and [bundles](https://bitbucket.org/hvisser/bundles) which was a great inspiration for leash.
+[Hugo Visser](https://plus.google.com/+HugoVisser) - Author of the invaluable [android-apt plugin](https://bitbucket.org/hvisser/android-apt) and the [bundles](https://bitbucket.org/hvisser/bundles) annotation library, which was a great inspiration for leash.
 
 ## License
 ```
