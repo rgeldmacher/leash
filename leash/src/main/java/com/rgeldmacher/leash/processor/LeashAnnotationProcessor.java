@@ -39,6 +39,8 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
@@ -92,6 +94,9 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
                     element.getModifiers().contains(Modifier.PROTECTED) ||
                     element.getModifiers().contains(Modifier.PRIVATE)) {
                 error(element, "Field must not be private, protected, static or final");
+                continue;
+            } else if (typeIsPrimitive(element.asType())) {
+                error(element, "Primitive types cannot be retained. Use @SaveState instead.");
                 continue;
             }
 
@@ -232,5 +237,12 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
 
     private void error(Element element, String message, Object... args) {
         processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, String.format(message, args), element);
+    }
+
+    private static boolean typeIsPrimitive(TypeMirror type) {
+        TypeKind kind = type.getKind();
+        return kind == TypeKind.BOOLEAN || kind == TypeKind.BYTE || kind == TypeKind.CHAR ||
+                kind == TypeKind.DOUBLE || kind == TypeKind.FLOAT || kind == TypeKind.INT ||
+                kind == TypeKind.LONG || kind == TypeKind.SHORT;
     }
 }
