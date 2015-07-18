@@ -7,7 +7,7 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:orientation="vertical"
-    tools:context=".MainActivity">
+    tools:context=".ExampleActivity">
 
     <TextView
         android:layout_width="wrap_content"
@@ -38,12 +38,19 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/activity_vertical_margin"
         android:layout_marginBottom="@dimen/activity_vertical_margin"
-        android:name="com.rgeldmacher.leash.sample.MainFragment"
+        android:name="com.rgeldmacher.leash.sample.ExampleFragment"
         android:id="@+id/fragment" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Change orientation to see the retained data" />
+
+    <Button
+        android:id="@+id/support_button"
+        android:layout_marginTop="@dimen/activity_vertical_margin"
+        android:text="Try with support library"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
 
 </LinearLayout>

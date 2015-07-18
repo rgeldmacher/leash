@@ -5,10 +5,15 @@ apply plugin: 'com.jfrog.bintray'
 def leashVersion = '0.1'
 def leashVersionDesc = 'initial version'
 
-jar {
-    from {
-        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Leash',
+                'Implementation-Version': leashVersion
     }
+
+    baseName = project.name + '-' + leashVersion + '-all'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
 }
 
 task sourcesJar(type: Jar) {

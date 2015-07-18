@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context="com.rgeldmacher.leash.sample.MainFragment">
+    tools:context="com.rgeldmacher.leash.sample.ExampleFragment">
 
     <TextView
         android:layout_width="wrap_content"

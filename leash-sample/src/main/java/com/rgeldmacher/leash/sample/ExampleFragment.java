@@ -1,7 +1,7 @@
 package com.rgeldmacher.leash.sample;
 
+import android.app.Fragment;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,7 +10,7 @@ import android.widget.TextView;
 import com.rgeldmacher.leash.annotation.Retain;
 
 
-public class MainFragment extends Fragment {
+public class ExampleFragment extends Fragment {
 
     FragmentTestHolder lostCount = new FragmentTestHolder();
 
@@ -21,20 +21,21 @@ public class MainFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        MainFragmentLeash.getRetainedData(this);
+        ExampleFragmentLeash.restore(this);
     }
 
     @Override
-    public void onDestroy() {
-        super.onDestroy();
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
 
-        MainFragmentLeash.retainData(this);
+        // store objects to be retained
+        ExampleFragmentLeash.retain(this);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_main, container, false);
+        return inflater.inflate(R.layout.fragment_example, container, false);
     }
 
     @Override

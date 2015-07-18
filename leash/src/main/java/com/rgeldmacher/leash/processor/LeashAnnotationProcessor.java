@@ -77,7 +77,7 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
 
         for (Map.Entry<TypeElement, Set<Element>> entry : fieldsByType.entrySet()) {
             try {
-                writeJavaFile(entry);
+                writeJavaFile(entry.getKey(), entry.getValue());
             } catch (IOException e) {
                 error(entry.getKey(), "Could not create leash support class", e);
             }
@@ -89,14 +89,16 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
     private Map<TypeElement, Set<Element>> getFieldsByType(Set<? extends Element> elements) {
         Map<TypeElement, Set<Element>> fieldsByType = new HashMap<>(100);
         for (Element element : elements) {
-            if (element.getModifiers().contains(Modifier.FINAL) ||
+            if (!typeIsActivityOrFragment(element.getEnclosingElement())) {
+                error(element, "The @Retain annotation can only be applied to fields of an Activity or Fragment");
+            } else if (element.getModifiers().contains(Modifier.FINAL) ||
                     element.getModifiers().contains(Modifier.STATIC) ||
                     element.getModifiers().contains(Modifier.PROTECTED) ||
                     element.getModifiers().contains(Modifier.PRIVATE)) {
                 error(element, "Field must not be private, protected, static or final");
                 continue;
             } else if (typeIsPrimitive(element.asType())) {
-                error(element, "Primitive types cannot be retained. Use @SaveState instead.");
+                error(element, "Primitive types cannot be retained currently. Use @SaveState instead");
                 continue;
             }
 
@@ -112,60 +114,66 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
         return fieldsByType;
     }
 
-    private void writeJavaFile(Map.Entry<TypeElement, Set<Element>> entry) throws IOException {
-        TypeSpec retainedFragmentSpec = createRetainedFragmentSpec(entry.getKey(), entry.getValue());
+    private void writeJavaFile(TypeElement classWithAnnotations, Set<Element> annotatedFields) throws IOException {
+        TypeSpec retainedFragmentSpec = createRetainedFragmentSpec(classWithAnnotations, annotatedFields);
         ClassName retainedFragmentType = ClassName.bestGuess(retainedFragmentSpec.name);
 
-        MethodSpec getRetainedFragmentMethodSpec = createGetRetainedFragmentMethodSpec(entry.getKey(), retainedFragmentType);
-        MethodSpec retainDataMethodSpec = createRetainDataMethodSpec(entry.getKey(), entry.getValue(), retainedFragmentType, getRetainedFragmentMethodSpec);
-        MethodSpec getRetainedDataMethodSpec = createGetRetainedDataMethodSpec(entry.getKey(), entry.getValue(), retainedFragmentType, getRetainedFragmentMethodSpec);
+        MethodSpec getRetainedFragmentMethodSpec = createGetRetainedFragmentMethodSpec(classWithAnnotations, retainedFragmentType);
+
+        MethodSpec restoreMethodSpec = createRestoreMethodSpec(classWithAnnotations, annotatedFields, retainedFragmentType, getRetainedFragmentMethodSpec);
+        MethodSpec retainMethodSpec = createRetainMethodSpec(classWithAnnotations, annotatedFields, retainedFragmentType, getRetainedFragmentMethodSpec);
+        MethodSpec clearMethodSpec = createClearMethodSpec(classWithAnnotations, annotatedFields, retainedFragmentType, getRetainedFragmentMethodSpec);
 
 
         MethodSpec leashCtor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PRIVATE)
                 .build();
 
-        TypeSpec leash = TypeSpec.classBuilder(entry.getKey().getSimpleName() + "Leash")
+        TypeSpec leash = TypeSpec.classBuilder(classWithAnnotations.getSimpleName() + "Leash")
                 .addModifiers(Modifier.FINAL)
                 .addMethod(leashCtor)
-                .addMethod(retainDataMethodSpec)
-                .addMethod(getRetainedDataMethodSpec)
+                .addMethod(restoreMethodSpec)
+                .addMethod(retainMethodSpec)
+                .addMethod(clearMethodSpec)
                 .addMethod(getRetainedFragmentMethodSpec)
                 .addType(retainedFragmentSpec)
                 .build();
 
-        JavaFile.builder(ClassName.get(entry.getKey()).packageName(), leash)
+        JavaFile.builder(ClassName.get(classWithAnnotations).packageName(), leash)
                 .build().writeTo(filer);
     }
 
-    private TypeSpec createRetainedFragmentSpec(TypeElement key, Set<Element> fields) {
+    private TypeSpec createRetainedFragmentSpec(TypeElement classWithAnnotations, Set<Element> annotatedFields) {
         MethodSpec ctor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
                 .addCode("setRetainInstance(true);")
                 .build();
 
-        ArrayList<FieldSpec> fieldSpecs = new ArrayList<>(fields.size());
-        for (Element field : fields) {
+        ArrayList<FieldSpec> fieldSpecs = new ArrayList<>(annotatedFields.size());
+        for (Element field : annotatedFields) {
             FieldSpec fieldSpec = FieldSpec.builder(TypeName.get(field.asType()), field.getSimpleName().toString())
                     .build();
             fieldSpecs.add(fieldSpec);
         }
 
-        return TypeSpec.classBuilder(key.getSimpleName() + "RetainedDataFragment")
+        return TypeSpec.classBuilder(classWithAnnotations.getSimpleName() + "RetainedDataFragment")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .superclass(ClassName.get("android.support.v4.app", "Fragment"))
+                .superclass(getFragmentClass(classWithAnnotations))
                 .addMethod(ctor)
                 .addFields(fieldSpecs)
                 .build();
     }
 
-    private MethodSpec createGetRetainedFragmentMethodSpec(TypeElement type, ClassName retainedFragmentType) {
-        return MethodSpec.methodBuilder("getRetainedFragment")
+    private MethodSpec createGetRetainedFragmentMethodSpec(TypeElement classWithAnnotations, ClassName retainedFragmentType) {
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("getRetainedFragment")
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
-                .addParameter(ClassName.get("android.support.v4.app", "FragmentActivity"), "activity")
+                .addParameter(getActivityClass(classWithAnnotations), "activity")
                 .returns(retainedFragmentType)
-                .beginControlFlow("if (activity != null && activity.getSupportFragmentManager() != null)")
-                .addStatement("$T fm = activity.getSupportFragmentManager()", ClassName.get("android.support.v4.app", "FragmentManager"))
+                .beginControlFlow("if (activity != null)");
+
+        addGetFragmentManagerSnippet(builder, classWithAnnotations);
+
+        builder.beginControlFlow("if (fm != null)")
                 .addStatement("Fragment retainedFragment = fm.findFragmentByTag($S)", retainedFragmentType.simpleName())
                 .beginControlFlow("if (retainedFragment == null)")
                 .addStatement("retainedFragment = new $T()", retainedFragmentType)
@@ -175,71 +183,128 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
                 .addStatement("return ($T) retainedFragment", retainedFragmentType)
                 .endControlFlow()
                 .endControlFlow()
-                .addStatement("return null")
-                .build();
-    }
+                .endControlFlow()
+                .addStatement("return null");
 
-    private MethodSpec createRetainDataMethodSpec(TypeElement type, Set<Element> fields, ClassName retainedFragmentType, MethodSpec getRetainedFragmentMethodSpec) {
-        MethodSpec.Builder builder = MethodSpec.methodBuilder("retainData")
-                .addModifiers(Modifier.STATIC);
-
-        String paramName;
-        if (types.isAssignable(type.asType(), elements.getTypeElement("android.support.v4.app.Fragment").asType())) {
-            paramName = "fragment";
-            builder.addParameter(ClassName.get(type), paramName)
-                    .addStatement("$T activity = null", ClassName.get("android.support.v4.app", "FragmentActivity"))
-                    .beginControlFlow("if (fragment != null)")
-                    .addStatement("activity = fragment.getActivity()")
-                    .endControlFlow();
-        } else {
-            paramName = "activity";
-            builder.addParameter(ClassName.get(type), paramName);
-        }
-
-        builder.addStatement("$T retainedFragment = $N(activity)", retainedFragmentType, getRetainedFragmentMethodSpec)
-                .beginControlFlow("if (retainedFragment != null)");
-        for (Element field : fields) {
-            builder.addStatement("retainedFragment.$L = $L.$L", field.getSimpleName().toString(), paramName, field.getSimpleName().toString());
-        }
-
-        builder.endControlFlow();
         return builder.build();
     }
 
-    private MethodSpec createGetRetainedDataMethodSpec(TypeElement type, Set<Element> fields, ClassName retainedFragmentType, MethodSpec getRetainedFragmentMethodSpec) {
-        MethodSpec.Builder builder = MethodSpec.methodBuilder("getRetainedData")
+    private MethodSpec createRetainMethodSpec(TypeElement classWithAnnotations, Set<Element> annotatedFields, ClassName retainedFragmentType, MethodSpec getRetainedFragmentMethodSpec) {
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("retain")
                 .addModifiers(Modifier.STATIC);
 
-        String paramName;
-        if (types.isAssignable(type.asType(), elements.getTypeElement("android.support.v4.app.Fragment").asType())) {
-            paramName = "fragment";
-            builder.addParameter(ClassName.get(type), paramName)
-                    .addStatement("$T activity = null", ClassName.get("android.support.v4.app", "FragmentActivity"))
-                    .beginControlFlow("if (fragment != null)")
-                    .addStatement("activity = fragment.getActivity()")
-                    .endControlFlow();
-        } else {
-            paramName = "activity";
-            builder.addParameter(ClassName.get(type), paramName);
+        String methodParam = addGetRetainedFragmentSnippet(builder, classWithAnnotations, retainedFragmentType, getRetainedFragmentMethodSpec);
+
+        builder.beginControlFlow("if (retainedFragment != null)");
+        for (Element field : annotatedFields) {
+            builder.addStatement("retainedFragment.$L = $L.$L", field.getSimpleName().toString(), methodParam, field.getSimpleName().toString());
         }
 
-        builder.addStatement("$T retainedFragment = $N(activity)", retainedFragmentType, getRetainedFragmentMethodSpec)
-                .beginControlFlow("if (retainedFragment != null)");
-        for (Element field : fields) {
+        builder.endControlFlow();
+
+        return builder.build();
+    }
+
+    private MethodSpec createRestoreMethodSpec(TypeElement classWithAnnotations, Set<Element> annotatedFields, ClassName retainedFragmentType, MethodSpec getRetainedFragmentMethodSpec) {
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("restore")
+                .addModifiers(Modifier.STATIC);
+
+        String methodParam = addGetRetainedFragmentSnippet(builder, classWithAnnotations, retainedFragmentType, getRetainedFragmentMethodSpec);
+
+        builder.beginControlFlow("if (retainedFragment != null)");
+        for (Element field : annotatedFields) {
             builder.beginControlFlow("if (retainedFragment.$L != null)", field.getSimpleName().toString())
-                    .addStatement("$L.$L = retainedFragment.$L", paramName, field.getSimpleName().toString(), field.getSimpleName().toString())
+                    .addStatement("$L.$L = retainedFragment.$L", methodParam, field.getSimpleName().toString(), field.getSimpleName().toString())
                     .endControlFlow();
         }
 
         builder.endControlFlow();
+
         return builder.build();
+    }
+
+    private MethodSpec createClearMethodSpec(TypeElement classWithAnnotations, Set<Element> annotatedFields, ClassName retainedFragmentType, MethodSpec getRetainedFragmentMethodSpec) {
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("clear")
+                .addModifiers(Modifier.STATIC);
+
+        addGetRetainedFragmentSnippet(builder, classWithAnnotations, retainedFragmentType, getRetainedFragmentMethodSpec);
+
+        builder.beginControlFlow("if (retainedFragment != null)");
+        for (Element field : annotatedFields) {
+            builder.addStatement("retainedFragment.$L = null", field.getSimpleName().toString());
+        }
+
+        builder.endControlFlow();
+
+        return builder.build();
+    }
+
+    private String addGetRetainedFragmentSnippet(MethodSpec.Builder builder, TypeElement classWithAnnotations, ClassName retainedFragmentType, MethodSpec getRetainedFragmentMethodSpec) {
+        String parameterName;
+        if (typeIsFragment(classWithAnnotations)) {
+            parameterName = "fragment";
+            builder.addParameter(ClassName.get(classWithAnnotations), parameterName);
+            builder.addStatement("$T activity = null", getActivityClass(classWithAnnotations))
+                    .beginControlFlow("if ($L != null)", parameterName)
+                    .addStatement("activity = $L.getActivity()", parameterName)
+                    .endControlFlow()
+                    .addStatement("$T retainedFragment = $N(activity)", retainedFragmentType, getRetainedFragmentMethodSpec);
+        } else {
+            parameterName = "activity";
+            builder.addParameter(ClassName.get(classWithAnnotations), parameterName);
+            builder.addStatement("$T retainedFragment = $N($L)", retainedFragmentType, getRetainedFragmentMethodSpec, parameterName);
+        }
+
+        return parameterName;
+    }
+
+    private void addGetFragmentManagerSnippet(MethodSpec.Builder builder, TypeElement classWithAnnotations) {
+        if (useSupportLibrary(classWithAnnotations)) {
+            builder.addStatement("$T fm = activity.getSupportFragmentManager()", ClassName.get("android.support.v4.app", "FragmentManager"));
+        } else {
+            builder.addStatement("$T fm = activity.getFragmentManager()", ClassName.get("android.app", "FragmentManager"));
+        }
     }
 
     private void error(Element element, String message, Object... args) {
         processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, String.format(message, args), element);
     }
 
-    private static boolean typeIsPrimitive(TypeMirror type) {
+    private ClassName getActivityClass(TypeElement type) {
+        if (useSupportLibrary(type)) {
+            return ClassName.get("android.support.v4.app", "FragmentActivity");
+        } else {
+            return ClassName.get("android.app", "Activity");
+        }
+    }
+
+    private ClassName getFragmentClass(TypeElement type) {
+        if (useSupportLibrary(type)) {
+            return ClassName.get("android.support.v4.app", "Fragment");
+        } else {
+            return ClassName.get("android.app", "Fragment");
+        }
+    }
+
+    private boolean useSupportLibrary(TypeElement type) {
+        return types.isAssignable(type.asType(), elements.getTypeElement("android.support.v4.app.FragmentActivity").asType())
+                || types.isAssignable(type.asType(), elements.getTypeElement("android.support.v4.app.Fragment").asType());
+    }
+
+    private boolean typeIsFragment(TypeElement type) {
+        return types.isAssignable(type.asType(), elements.getTypeElement("android.app.Fragment").asType())
+                || types.isAssignable(type.asType(), elements.getTypeElement("android.support.v4.app.Fragment").asType());
+    }
+
+    private boolean typeIsActivityOrFragment(Element type) {
+        return type != null &&
+                (types.isAssignable(type.asType(), elements.getTypeElement("android.app.Activity").asType())
+                        || types.isAssignable(type.asType(), elements.getTypeElement("android.app.Fragment").asType())
+                        || types.isAssignable(type.asType(), elements.getTypeElement("android.support.v4.app.FragmentActivity").asType())
+                        || types.isAssignable(type.asType(), elements.getTypeElement("android.support.v4.app.Fragment").asType()));
+    }
+
+    private boolean typeIsPrimitive(TypeMirror type) {
         TypeKind kind = type.getKind();
         return kind == TypeKind.BOOLEAN || kind == TypeKind.BYTE || kind == TypeKind.CHAR ||
                 kind == TypeKind.DOUBLE || kind == TypeKind.FLOAT || kind == TypeKind.INT ||

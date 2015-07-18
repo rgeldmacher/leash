@@ -7,7 +7,7 @@ import android.widget.TextView;
 
 import com.rgeldmacher.leash.annotation.Retain;
 
-public class MainActivity extends AppCompatActivity {
+public class ExampleSupportActivity extends AppCompatActivity {
 
     ActivityTestHolder lostCount = new ActivityTestHolder();
 
@@ -18,9 +18,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        MainActivityLeash.getRetainedData(this);
+        // restore retained objects
+        ExampleSupportActivityLeash.restore(this);
 
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_support_example);
 
         final TextView lostCountView = (TextView) findViewById(R.id.count);
         final TextView retainedCountView = (TextView) findViewById(R.id.count2);
@@ -40,10 +41,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
 
-        MainActivityLeash.retainData(this);
+        // store objects to be retained
+        ExampleSupportActivityLeash.retain(this);
     }
 
     public static class ActivityTestHolder {
