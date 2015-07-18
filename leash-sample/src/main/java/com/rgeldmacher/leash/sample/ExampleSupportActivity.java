@@ -5,7 +5,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.TextView;
 
-import com.rgeldmacher.leash.annotation.Retain;
+import com.rgeldmacher.leash.Leash;
+import com.rgeldmacher.leash.Retain;
+
 
 public class ExampleSupportActivity extends AppCompatActivity {
 
@@ -19,7 +21,7 @@ public class ExampleSupportActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         // restore retained objects
-        ExampleSupportActivityLeash.restore(this);
+        Leash.restore(this);
 
         setContentView(R.layout.activity_support_example);
 
@@ -45,7 +47,7 @@ public class ExampleSupportActivity extends AppCompatActivity {
         super.onSaveInstanceState(outState);
 
         // store objects to be retained
-        ExampleSupportActivityLeash.retain(this);
+        Leash.retain(this);
     }
 
     public static class ActivityTestHolder {

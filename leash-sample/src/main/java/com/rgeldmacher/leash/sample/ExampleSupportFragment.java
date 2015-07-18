@@ -7,7 +7,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.rgeldmacher.leash.annotation.Retain;
+import com.rgeldmacher.leash.Leash;
+import com.rgeldmacher.leash.Retain;
 
 
 public class ExampleSupportFragment extends Fragment {
@@ -22,7 +23,7 @@ public class ExampleSupportFragment extends Fragment {
         super.onCreate(savedInstanceState);
 
         // restore retained objects
-        ExampleSupportFragmentLeash.restore(this);
+        Leash.restore(this);
     }
 
     @Override
@@ -30,7 +31,7 @@ public class ExampleSupportFragment extends Fragment {
         super.onSaveInstanceState(outState);
 
         // store objects to be retained
-        ExampleSupportFragmentLeash.retain(this);
+        Leash.retain(this);
     }
 
     @Override

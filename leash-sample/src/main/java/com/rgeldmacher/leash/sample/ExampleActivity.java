@@ -6,7 +6,9 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 
-import com.rgeldmacher.leash.annotation.Retain;
+import com.rgeldmacher.leash.Leash;
+import com.rgeldmacher.leash.Retain;
+
 
 public class ExampleActivity extends Activity {
 
@@ -19,7 +21,7 @@ public class ExampleActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        ExampleActivityLeash.restore(this);
+        Leash.restore(this);
 
         setContentView(R.layout.activity_example);
 
@@ -52,7 +54,7 @@ public class ExampleActivity extends Activity {
         super.onSaveInstanceState(outState);
 
         // store objects to be retained
-        ExampleActivityLeash.retain(this);
+        Leash.retain(this);
     }
 
     public static class ActivityTestHolder {
