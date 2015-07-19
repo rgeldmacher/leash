@@ -2,8 +2,8 @@ apply plugin: 'java'
 apply plugin: 'maven-publish'
 apply plugin: 'com.jfrog.bintray'
 
-def leashVersion = '0.1'
-def leashVersionDesc = 'initial version'
+def leashVersion = '0.2'
+def leashVersionDesc = 'aded support for stock activity/fragment'
 
 task fatJar(type: Jar) {
     manifest {
