@@ -12,7 +12,7 @@ task fatJar(type: Jar) {
     }
 
     baseName = project.name + '-' + leashVersion + '-all'
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    from { configurations.default.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }
 
@@ -63,8 +63,24 @@ bintray {
     }
 }
 
+configurations {
+    provided {
+        dependencies.all { dep ->
+            configurations.default.exclude group: dep.group, module: dep.name
+        }
+    }
+    compile.extendsFrom provided
+}
+
+repositories {
+    flatDir(dirs: file('/Users/robertgeldmacher/development/sdk/platforms/android-22'))
+    flatDir(dirs: file('/Users/robertgeldmacher/development/sdk/extras/android/support/v4'))
+}
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.squareup:javapoet:1.1.0'
+
+    provided ':android@jar'
+    provided ':android-support-v4@jar'
 }

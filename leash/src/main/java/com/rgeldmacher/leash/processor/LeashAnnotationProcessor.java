@@ -21,10 +21,8 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
-import com.squareup.javapoet.TypeVariableName;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -127,17 +125,18 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
         MethodSpec retainMethodSpec = createRetainMethodSpec(classWithAnnotations, annotatedFields, retainedFragmentType, getRetainedFragmentMethodSpec);
         MethodSpec clearMethodSpec = createClearMethodSpec(classWithAnnotations, annotatedFields, retainedFragmentType, getRetainedFragmentMethodSpec);
 
-        TypeVariableName typeVariableName = TypeVariableName.get("T", ClassName.get(classWithAnnotations));
+        MethodSpec ctor = MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PRIVATE)
+                .build();
 
         TypeSpec leash = TypeSpec.classBuilder(classWithAnnotations.getSimpleName() + Leash.SUFFIX)
-                .addModifiers(Modifier.PUBLIC)
-                .addTypeVariable(typeVariableName)
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                .addMethod(ctor)
                 .addMethod(restoreMethodSpec)
                 .addMethod(retainMethodSpec)
                 .addMethod(clearMethodSpec)
                 .addMethod(getRetainedFragmentMethodSpec)
                 .addType(retainedFragmentSpec)
-                .addSuperinterface(ParameterizedTypeName.get(ClassName.get(Leash.LeashBinding.class), typeVariableName))
                 .build();
 
         JavaFile.builder(ClassName.get(classWithAnnotations).packageName(), leash)
@@ -167,7 +166,7 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
 
     private MethodSpec createGetRetainedFragmentMethodSpec(TypeElement classWithAnnotations, ClassName retainedFragmentType) {
         MethodSpec.Builder builder = MethodSpec.methodBuilder("getRetainedFragment")
-                .addModifiers(Modifier.PRIVATE)
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
                 .addParameter(getActivityClass(classWithAnnotations), "activity")
                 .returns(retainedFragmentType)
                 .beginControlFlow("if (activity != null)");
@@ -192,7 +191,7 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
 
     private MethodSpec createRetainMethodSpec(TypeElement classWithAnnotations, Set<Element> annotatedFields, ClassName retainedFragmentType, MethodSpec getRetainedFragmentMethodSpec) {
         MethodSpec.Builder builder = MethodSpec.methodBuilder("retain")
-                .addModifiers(Modifier.PUBLIC);
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC);
 
         String methodParam = addGetRetainedFragmentSnippet(builder, classWithAnnotations, retainedFragmentType, getRetainedFragmentMethodSpec);
 
@@ -208,7 +207,7 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
 
     private MethodSpec createRestoreMethodSpec(TypeElement classWithAnnotations, Set<Element> annotatedFields, ClassName retainedFragmentType, MethodSpec getRetainedFragmentMethodSpec) {
         MethodSpec.Builder builder = MethodSpec.methodBuilder("restore")
-                .addModifiers(Modifier.PUBLIC);
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC);
 
         String methodParam = addGetRetainedFragmentSnippet(builder, classWithAnnotations, retainedFragmentType, getRetainedFragmentMethodSpec);
 
@@ -226,7 +225,7 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
 
     private MethodSpec createClearMethodSpec(TypeElement classWithAnnotations, Set<Element> annotatedFields, ClassName retainedFragmentType, MethodSpec getRetainedFragmentMethodSpec) {
         MethodSpec.Builder builder = MethodSpec.methodBuilder("clear")
-                .addModifiers(Modifier.PUBLIC);
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC);
 
         addGetRetainedFragmentSnippet(builder, classWithAnnotations, retainedFragmentType, getRetainedFragmentMethodSpec);
 
@@ -244,7 +243,7 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
         String parameterName;
         if (typeIsFragment(classWithAnnotations)) {
             parameterName = "fragment";
-            builder.addParameter(TypeVariableName.get("T"), parameterName);
+            builder.addParameter(TypeName.get(classWithAnnotations.asType()), parameterName);
             builder.addStatement("$T activity = null", getActivityClass(classWithAnnotations))
                     .beginControlFlow("if ($L != null)", parameterName)
                     .addStatement("activity = $L.getActivity()", parameterName)
@@ -252,7 +251,7 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
                     .addStatement("$T retainedFragment = $N(activity)", retainedFragmentType, getRetainedFragmentMethodSpec);
         } else {
             parameterName = "activity";
-            builder.addParameter(TypeVariableName.get("T", ClassName.get(classWithAnnotations)), parameterName);
+            builder.addParameter(TypeName.get(classWithAnnotations.asType()), parameterName);
             builder.addStatement("$T retainedFragment = $N($L)", retainedFragmentType, getRetainedFragmentMethodSpec, parameterName);
         }
 
