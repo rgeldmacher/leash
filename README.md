@@ -13,18 +13,18 @@ public class ExampleActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        ExampleActivityLeash.restore(this);
+        Leash.restore(this);
         // use your retained data ...
     }
   
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        ExampleActivityLeash.retain(this);
+        Leash.retain(this);
     }
 ```
 
-The annotation will generate code at compile time and create the class `<YourActivity>Leash` that provides the methods `restore()` and `retain()`. Call `restore()` to initialize the annotated fields of your activity with the retained objects. Call `retain()` in `onSaveInstanceState()` to store the objects you want to retain.
+The annotation will generate code at compile time and create the class `<YourActivity>Leash`. Calling `Leash.restore()`and `Leash.retain()` delegates to this generated code that you can see and debug. Call `restore()` to initialize the annotated fields of your activity with the retained objects. Call `retain()` in `onSaveInstanceState()` to store the objects you want to retain.
 
 ## How it works
 The basic idea is to store objects in a fragment that is retained across configuration changes, as described by Google in the [API Guides](http://developer.android.com/guide/topics/resources/runtime-changes.html#RetainingAnObject).
@@ -39,7 +39,7 @@ Download the latest jar or grab via Maven (JCenter):
 <dependency>
   <groupId>com.rgeldmacher.leash</groupId>
   <artifactId>leash</artifactId>
-  <version>0.1</version>
+  <version>0.2</version>
 </dependency>
 ```
 
@@ -49,27 +49,6 @@ Gradle:
 compile 'com.rgeldmacher.leash:leash:0.2'
 ```
 
-
-## Android Studio Integration
-While the annotation itself will work out of the box, Android Studio does not automatically pick up the generated code and thus cannot provide auto-completion on the generated classes and will mark their usages as error. To fix this you can add the [android-apt plugin](https://bitbucket.org/hvisser/android-apt) by Hugo Visser to your setup and Android Studio will pick up the generated code.
-
-Add android-apt to your build scripts:
-```
-buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:1.2.3'
-        classpath 'com.neenbedankt.gradle.plugins:android-apt:1.4'
-    }
-}
-```
-
-And apply to your module:
-```
-apply plugin: 'com.neenbedankt.android-apt'
-```
 
 ## Developed by
 Robert Geldmacher - [google.com/+RobertGeldmacher](https://plus.google.com/+RobertGeldmacher)
