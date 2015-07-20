@@ -26,6 +26,8 @@ public class ExampleActivity extends Activity {
 
 The annotation will generate code at compile time and create the class `<YourActivity>Leash`. Calling `Leash.restore()`and `Leash.retain()` delegates to this generated code that you can see and debug. Call `restore()` to initialize the annotated fields of your activity with the retained objects. Call `retain()` in `onSaveInstanceState()` to store the objects you want to retain.
 
+For advanced setup options please refer to the wiki pages.
+
 ## How it works
 The basic idea is to store objects in a fragment that is retained across configuration changes, as described by Google in the [API Guides](http://developer.android.com/guide/topics/resources/runtime-changes.html#RetainingAnObject).
 The generated code will create a retained fragment with fields matching the annotated fields of your Activity. When `retain()`is called the objects of the annotated fields will be stored in the retained fragment. When `restore()` is called after the configuration change the objects of the retained fragment will be assigned to the annotated fields of your activity again.
