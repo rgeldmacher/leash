@@ -13,25 +13,25 @@ public class ExampleActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        ExampleActivityLeash.getRetainedData(this);
+        ExampleActivityLeash.restore(this);
         // use your retained data ...
     }
   
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        ExampleActivityLeash.retainData(this);
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        ExampleActivityLeash.retain(this);
     }
 ```
 
-The annotation will generate code at compile time and create the class `<YourActivity>Leash` that provides the methods `getRetainedData()` and `retainData()`. Call `getRetainedData()` to initialize the annotated fields of your activity with the retained objects. Call `retainData()` in `onDestroy()` to store the objects you want to retain.
+The annotation will generate code at compile time and create the class `<YourActivity>Leash` that provides the methods `restore()` and `retain()`. Call `restore()` to initialize the annotated fields of your activity with the retained objects. Call `retain()` in `onSaveInstanceState()` to store the objects you want to retain.
 
 ## How it works
 The basic idea is to store objects in a fragment that is retained across configuration changes, as described by Google in the [API Guides](http://developer.android.com/guide/topics/resources/runtime-changes.html#RetainingAnObject).
-The generated code will create a retained fragment with fields matching the annotated fields of your Activity. When `retainData()`is called the objects of the annotated fields will be stored in the retained fragment. When `getRetainedData()` is called after the configuration change the objects of the retained fragment will be assigned to the annotated fields of your activity again.
+The generated code will create a retained fragment with fields matching the annotated fields of your Activity. When `retain()`is called the objects of the annotated fields will be stored in the retained fragment. When `restore()` is called after the configuration change the objects of the retained fragment will be assigned to the annotated fields of your activity again.
 
 ## Download
-Download the latest jar or grab via Maven:
+Download the latest jar or grab via Maven (JCenter):
 
 [ ![Download](https://api.bintray.com/packages/rgeldmacher/maven/com.rgeldmacher.leash/images/download.svg) ](https://bintray.com/rgeldmacher/maven/com.rgeldmacher.leash/_latestVersion)
 
@@ -46,19 +46,9 @@ Download the latest jar or grab via Maven:
 Gradle:
 
 ```
-compile 'com.rgeldmacher.leash:leash:0.1'
+compile 'com.rgeldmacher.leash:leash:0.2'
 ```
 
-Currently leash is only published on my personal bintray repository, so you need to add the repo to your maven repositories:
-```
-repositories {
-    maven {
-        url "https://dl.bintray.com/rgeldmacher/maven/"
-    }
-}
-```
-
-JCenter integration coming soon!
 
 ## Android Studio Integration
 While the annotation itself will work out of the box, Android Studio does not automatically pick up the generated code and thus cannot provide auto-completion on the generated classes and will mark their usages as error. To fix this you can add the [android-apt plugin](https://bitbucket.org/hvisser/android-apt) by Hugo Visser to your setup and Android Studio will pick up the generated code.
@@ -80,9 +70,6 @@ And apply to your module:
 ```
 apply plugin: 'com.neenbedankt.android-apt'
 ```
-
-## Disclaimer
-Leash ist still under construction. Breaking API changes may still occur.
 
 ## Developed by
 Robert Geldmacher - [google.com/+RobertGeldmacher](https://plus.google.com/+RobertGeldmacher)
