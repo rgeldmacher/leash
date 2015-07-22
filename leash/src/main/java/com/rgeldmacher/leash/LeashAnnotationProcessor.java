@@ -13,10 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 */
-package com.rgeldmacher.leash.processor;
+package com.rgeldmacher.leash;
 
-import com.rgeldmacher.leash.Leash;
-import com.rgeldmacher.leash.Retain;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
@@ -49,7 +47,7 @@ import javax.tools.Diagnostic;
 /**
  * Annotation processor for the Retain annotation.
  *
- * @author robertgeldmacher
+ * @author rgeldmacher
  */
 @SupportedAnnotationTypes("com.rgeldmacher.leash.Retain")
 public class LeashAnnotationProcessor extends AbstractProcessor {
@@ -97,9 +95,6 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
                     element.getModifiers().contains(Modifier.PROTECTED) ||
                     element.getModifiers().contains(Modifier.PRIVATE)) {
                 error(element, "Field must not be private, protected, static or final");
-                continue;
-            } else if (typeIsPrimitive(element.asType())) {
-                error(element, "Primitive types cannot be retained currently. Use @SaveState instead");
                 continue;
             }
 
@@ -156,11 +151,14 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
             fieldSpecs.add(fieldSpec);
         }
 
+        FieldSpec hasBeenRetained = FieldSpec.builder(TypeName.BOOLEAN, "hasBeenRetained").build();
+        fieldSpecs.add(hasBeenRetained);
+
         return TypeSpec.classBuilder(classWithAnnotations.getSimpleName() + "RetainedDataFragment")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .superclass(getFragmentClass(classWithAnnotations))
-                .addMethod(ctor)
                 .addFields(fieldSpecs)
+                .addMethod(ctor)
                 .build();
     }
 
@@ -200,6 +198,7 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
             builder.addStatement("retainedFragment.$L = $L.$L", field.getSimpleName().toString(), methodParam, field.getSimpleName().toString());
         }
 
+        builder.addStatement("retainedFragment.hasBeenRetained = true");
         builder.endControlFlow();
 
         return builder.build();
@@ -211,14 +210,14 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
 
         String methodParam = addGetRetainedFragmentSnippet(builder, classWithAnnotations, retainedFragmentType, getRetainedFragmentMethodSpec);
 
-        builder.beginControlFlow("if (retainedFragment != null)");
+        builder.beginControlFlow("if (retainedFragment != null)")
+                .beginControlFlow("if (retainedFragment.hasBeenRetained)");
         for (Element field : annotatedFields) {
-            builder.beginControlFlow("if (retainedFragment.$L != null)", field.getSimpleName().toString())
-                    .addStatement("$L.$L = retainedFragment.$L", methodParam, field.getSimpleName().toString(), field.getSimpleName().toString())
-                    .endControlFlow();
+            builder.addStatement("$L.$L = retainedFragment.$L", methodParam, field.getSimpleName().toString(), field.getSimpleName().toString());
         }
 
-        builder.endControlFlow();
+        builder.endControlFlow()
+                .endControlFlow();
 
         return builder.build();
     }
@@ -229,9 +228,14 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
 
         addGetRetainedFragmentSnippet(builder, classWithAnnotations, retainedFragmentType, getRetainedFragmentMethodSpec);
 
-        builder.beginControlFlow("if (retainedFragment != null)");
+        builder.beginControlFlow("if (retainedFragment != null)")
+                .addStatement("retainedFragment.hasBeenRetained = false");
         for (Element field : annotatedFields) {
-            builder.addStatement("retainedFragment.$L = null", field.getSimpleName().toString());
+            if (typeIsPrimitive(field.asType())) {
+                builder.addStatement("retainedFragment.$L = $L", field.getSimpleName().toString(), getPrimitiveDefault(field.asType()));
+            } else {
+                builder.addStatement("retainedFragment.$L = null", field.getSimpleName().toString());
+            }
         }
 
         builder.endControlFlow();
@@ -309,5 +313,63 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
         return kind == TypeKind.BOOLEAN || kind == TypeKind.BYTE || kind == TypeKind.CHAR ||
                 kind == TypeKind.DOUBLE || kind == TypeKind.FLOAT || kind == TypeKind.INT ||
                 kind == TypeKind.LONG || kind == TypeKind.SHORT;
+    }
+
+    private String getPrimitiveDefault(TypeMirror typeMirror) {
+        TypeKind kind = typeMirror.getKind();
+        if (kind == TypeKind.BOOLEAN) {
+            return "" + Defaults.booleanValue();
+        } else if (kind == TypeKind.BYTE) {
+            return "" + Defaults.byteValue();
+        } else if (kind == TypeKind.CHAR) {
+            return "" + Defaults.charValue();
+        } else if (kind == TypeKind.DOUBLE) {
+            return "" + Defaults.doubleValue();
+        } else if (kind == TypeKind.FLOAT) {
+            return "" + Defaults.floatValue();
+        } else if (kind == TypeKind.INT) {
+            return "" + Defaults.intValue();
+        } else if (kind == TypeKind.LONG) {
+            return "" + Defaults.longValue();
+        } else if (kind == TypeKind.SHORT) {
+            return "" + Defaults.shortValue();
+        }
+
+        return "";
+    }
+
+    private static class Defaults {
+
+        static int intValue() {
+            return 0;
+        }
+
+        static boolean booleanValue() {
+            return false;
+        }
+
+        static byte byteValue() {
+            return 0;
+        }
+
+        static byte charValue() {
+            return '\u0000';
+        }
+
+        static short shortValue() {
+            return 0;
+        }
+
+        static long longValue() {
+            return 0L;
+        }
+
+        static float floatValue() {
+            return 0.0f;
+        }
+
+        static double doubleValue() {
+            return 0.0d;
+        }
     }
 }

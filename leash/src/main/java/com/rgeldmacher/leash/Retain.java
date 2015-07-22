@@ -23,7 +23,7 @@ import java.lang.annotation.Target;
 /**
  * Annotation to retain the annotated field across Android configuration changes.
  *
- * @author robertgeldmacher
+ * @author rgeldmacher
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.SOURCE)
