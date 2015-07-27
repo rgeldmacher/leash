@@ -318,58 +318,23 @@ public class LeashAnnotationProcessor extends AbstractProcessor {
     private String getPrimitiveDefault(TypeMirror typeMirror) {
         TypeKind kind = typeMirror.getKind();
         if (kind == TypeKind.BOOLEAN) {
-            return "" + Defaults.booleanValue();
+            return "false";
         } else if (kind == TypeKind.BYTE) {
-            return "" + Defaults.byteValue();
+            return "0";
         } else if (kind == TypeKind.CHAR) {
-            return "" + Defaults.charValue();
+            return "'\\u0000'";
         } else if (kind == TypeKind.DOUBLE) {
-            return "" + Defaults.doubleValue();
+            return "0.0d";
         } else if (kind == TypeKind.FLOAT) {
-            return "" + Defaults.floatValue();
+            return "0.0f";
         } else if (kind == TypeKind.INT) {
-            return "" + Defaults.intValue();
+            return "0";
         } else if (kind == TypeKind.LONG) {
-            return "" + Defaults.longValue();
+            return "0L";
         } else if (kind == TypeKind.SHORT) {
-            return "" + Defaults.shortValue();
+            return "0";
         }
 
         return "";
-    }
-
-    private static class Defaults {
-
-        static int intValue() {
-            return 0;
-        }
-
-        static boolean booleanValue() {
-            return false;
-        }
-
-        static byte byteValue() {
-            return 0;
-        }
-
-        static byte charValue() {
-            return '\u0000';
-        }
-
-        static short shortValue() {
-            return 0;
-        }
-
-        static long longValue() {
-            return 0L;
-        }
-
-        static float floatValue() {
-            return 0.0f;
-        }
-
-        static double doubleValue() {
-            return 0.0d;
-        }
     }
 }
