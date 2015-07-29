@@ -2,8 +2,14 @@ apply plugin: 'java'
 apply plugin: 'maven-publish'
 apply plugin: 'com.jfrog.bintray'
 
-def leashVersion = '0.2'
-def leashVersionDesc = 'aded support for stock activity/fragment'
+Properties localProperties = new Properties()
+localProperties.load(project.rootProject.file('local.properties').newDataInputStream())
+def sdkDir = localProperties.getProperty('sdk.dir')
+
+Properties versionProperties = new Properties()
+versionProperties.load(project.rootProject.file('version.properties').newDataInputStream())
+def leashVersion = versionProperties.getProperty('version.name')
+def leashVersionDesc = versionProperties.getProperty('version.description')
 
 task fatJar(type: Jar) {
     manifest {
@@ -73,8 +79,8 @@ configurations {
 }
 
 repositories {
-    flatDir(dirs: file('/Users/robertgeldmacher/development/sdk/platforms/android-22'))
-    flatDir(dirs: file('/Users/robertgeldmacher/development/sdk/extras/android/support/v4'))
+    flatDir(dirs: file(sdkDir + '/platforms/android-22'))
+    flatDir(dirs: file(sdkDir + '/extras/android/support/v4'))
 }
 
 dependencies {
