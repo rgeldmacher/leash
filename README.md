@@ -41,14 +41,14 @@ Download the latest jar or grab via Maven (JCenter):
 <dependency>
   <groupId>com.rgeldmacher.leash</groupId>
   <artifactId>leash</artifactId>
-  <version>0.2</version>
+  <version>0.3</version>
 </dependency>
 ```
 
 Gradle:
 
 ```
-compile 'com.rgeldmacher.leash:leash:0.2'
+compile 'com.rgeldmacher.leash:leash:0.3'
 ```
 
 
