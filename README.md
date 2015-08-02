@@ -48,7 +48,7 @@ Download the latest jar or grab via Maven (JCenter):
 Gradle:
 
 ```
-compile 'com.rgeldmacher.leash:leash:0.3'
+compile 'com.rgeldmacher.leash:leash:0.4'
 ```
 
 
