@@ -41,14 +41,31 @@ Download the latest jar or grab via Maven (JCenter):
 <dependency>
   <groupId>com.rgeldmacher.leash</groupId>
   <artifactId>leash</artifactId>
-  <version>0.3</version>
+  <version>0.5</version>
 </dependency>
 ```
 
 Gradle:
 
 ```
-compile 'com.rgeldmacher.leash:leash:0.4'
+compile 'com.rgeldmacher.leash:leash:0.5'
+```
+
+## Proguard
+Leash generates and uses classes dynamically which means that static analysis tools like ProGuard may think they are unused. If you use Proguard in your project include this in your Proguard configuration:
+```
+-keep class com.rgeldmacher.leash.** { *; }
+-keep class **Leash { *; }
+-keepclasseswithmembernames class * {
+    @com.rgeldmacher.leash.* <fields>;
+}
+-keepclasseswithmembernames class * {
+    @com.rgeldmacher.leash.* <methods>;
+}
+-dontwarn com.rgeldmacher.leash.**
+-dontwarn javax.**
+-dontwarn java.io.**
+-dontwarn java.nio.**
 ```
 
 
