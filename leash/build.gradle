@@ -39,6 +39,16 @@ publishing {
             artifact sourcesJar {
                 classifier "sources"
             }
+            pom.withXml {
+                def Node root = asNode()
+                root.dependencies.'*'.findAll() {
+                    project.configurations.provided.allDependencies.find { dep ->
+                        dep.name == it.artifactId.text()
+                    }
+                }.each() {
+                    it.replaceNode {}
+                }
+            }
         }
     }
 }
@@ -86,12 +96,8 @@ repositories {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.squareup:javapoet:1.1.0'
-    provided (':android@jar') {
-        exclude group: '*'
-    }
-    provided (':android-support-v4@jar') {
-        exclude group: '*'
-    }
+    provided ':android@jar'
+    provided ':android-support-v4@jar'
     testCompile 'junit:junit:4.12'
     testCompile 'com.google.testing.compile:compile-testing:0.7'
     testCompile files(org.gradle.internal.jvm.Jvm.current().getToolsJar())
